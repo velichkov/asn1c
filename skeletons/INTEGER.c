@@ -817,7 +817,7 @@ INTEGER_decode_aper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 		unsigned long long uvalue = 0;
 		/* #11.5.7 */
 		ASN_DEBUG("Integer with range %d bits", ct->range_bits);
-		if((size_t)ct->range_bits > 8 * sizeof(long)) {
+		if((size_t)ct->range_bits > 8 * sizeof(long long)) {
 			ASN__DECODE_FAILED;
 		}
 
@@ -871,7 +871,7 @@ INTEGER_decode_aper(asn_codec_ctx_t *opt_codec_ctx, asn_TYPE_descriptor_t *td,
 				ASN__DECODE_FAILED;
 		} else {
 			value = uvalue + ct->lower_bound;
-			if(asn_long2INTEGER(st, (long)value))
+			if(asn_long2INTEGER(st, value))
 				ASN__DECODE_FAILED;
 		}
 		return rval;
@@ -987,7 +987,7 @@ INTEGER_encode_aper(asn_TYPE_descriptor_t *td,
 		ASN_DEBUG("Encoding integer %lld (%llu) with range %d bits",
 			  value, value - ct->lower_bound, ct->range_bits);
 
-		if((size_t)ct->range_bits > 8 * sizeof(unsigned long))
+		if((size_t)ct->range_bits > 8 * sizeof(unsigned long long))
 			ASN__ENCODE_FAILED;
 
 		/* v = "n" - "lb" */
