@@ -16,8 +16,10 @@ BEGIN
 	T ::= SEQUENCE {
 		unsigned33  INTEGER (0..5000000000),    -- range 33 bits
 		unsigned42  INTEGER (0..3153600000000), -- range 42 bits
+		unsigned64  INTEGER (0..9223372036854775807), --range 64 bits TODO: Fails with anything bigger then 63bits
 		signed33    INTEGER (-4000000000..4000000000), -- 33 bits
-		signed33ext INTEGER (-4000000000..4000000000,...)
+		signed33ext INTEGER (-4000000000..4000000000,...),
+		signed64    INTEGER (-9223372036854775807..9223372036854775806) -- 64bits (1 less then max)
 	}
 
 END

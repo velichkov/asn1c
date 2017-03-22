@@ -40,7 +40,7 @@ static void
 verify(int testNo, T_t *ti) {
 	asn_enc_rval_t er;
 	asn_dec_rval_t rv;
-	unsigned char buf[20];
+	unsigned char buf[1024];
 	T_t *to = 0;
 
 	fprintf(stderr, "%d IN: { %llu, %llu, %lld, %lld }\n", testNo,
@@ -75,7 +75,7 @@ verify(int testNo, T_t *ti) {
 static void
 NO_encode(int testNo, T_t *ti) {
 	asn_enc_rval_t er;
-	unsigned char buf[20];
+	unsigned char buf[1024];
 
 	fprintf(stderr, "%d IN: { %llu, %llu, %lld, %lld }\n", testNo,
 		i2ul(&ti->unsigned33), i2ul(&ti->unsigned42),
@@ -92,8 +92,10 @@ int main() {
     memset(&ti, 0, sizeof(ti));
     ul2i(&ti.unsigned33,  0);
     ul2i(&ti.unsigned42,  0);
+    ul2i(&ti.unsigned64, 0);
     l2i(&ti.signed33,    0);
     l2i(&ti.signed33ext, 0);
+    l2i(&ti.signed64, 0);
 	verify(1, &ti);
 
     ul2i(&ti.unsigned33,  1);
@@ -156,6 +158,54 @@ int main() {
     l2i(&ti.signed33,    0);
     l2i(&ti.signed33ext, 4000000000 + 1);
 	verify(11, &ti);
+
+	ul2i(&ti.unsigned33,  0);
+	ul2i(&ti.unsigned42,  0);
+	ul2i(&ti.unsigned64, 9223372036854775807);
+	l2i(&ti.signed33,    0);
+	l2i(&ti.signed33ext, 0);
+	l2i(&ti.signed64, 9223372036854775806);
+	verify(12, &ti);
+
+	ul2i(&ti.unsigned33,  0);
+	ul2i(&ti.unsigned42,  0);
+	ul2i(&ti.unsigned64, 9223372036854775807);
+	l2i(&ti.signed33,    0);
+	l2i(&ti.signed33ext, 0);
+	l2i(&ti.signed64, -9223372036854775807);
+	verify(13, &ti);
+
+	ul2i(&ti.unsigned33,  0);
+	ul2i(&ti.unsigned42,  0);
+	ul2i(&ti.unsigned64, 9223372036854775808); //1 bigger then constr
+	l2i(&ti.signed33,    0);
+	l2i(&ti.signed33ext, 0);
+	l2i(&ti.signed64, 0);
+	NO_encode(14, &ti);
+
+	ul2i(&ti.unsigned33,  0);
+	ul2i(&ti.unsigned42,  0);
+	ul2i(&ti.unsigned64, -1); //1 less then constr
+	l2i(&ti.signed33,    0);
+	l2i(&ti.signed33ext, 0);
+	l2i(&ti.signed64, 0);
+	NO_encode(15, &ti);
+
+	ul2i(&ti.unsigned33,  0);
+	ul2i(&ti.unsigned42,  0);
+	ul2i(&ti.unsigned64, 0);
+	l2i(&ti.signed33,    0);
+	l2i(&ti.signed33ext, 0);
+	l2i(&ti.signed64, 9223372036854775807); //1 bigger then constr
+	NO_encode(16, &ti);
+
+	ul2i(&ti.unsigned33,  0);
+	ul2i(&ti.unsigned42,  0);
+	ul2i(&ti.unsigned64, 0);
+	l2i(&ti.signed33,    0);
+	l2i(&ti.signed33ext, 0);
+	l2i(&ti.signed64, -9223372036854775808); //1 less then constr
+	NO_encode(17, &ti);
 
 	return 0;
 }
