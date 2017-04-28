@@ -1,56 +1,56 @@
 language: c
-matrix:
-  include:
-  - os: osx
-    compiler: clang
-    env: codecov=true
-    install:
-      - brew install lcov
-  - os: linux
-    compiler: clang
-    env: BUILD=x86_64-linux-gnu CFLAGS=-m64 LDFLAGS=-m64
-  - os: linux
-    compiler: clang
-    env: BUILD=i686-linux-gnu CFLAGS=-m32 LDFLAGS=-m32
-  - os: linux
-    dist: precise
-    compiler: gcc
-    env: BUILD=x86_64-linux-gnu CFLAGS=-m64 LDFLAGS=-m64
-  - os: linux
-    dist: precise
-    compiler: gcc
-    env: BUILD=i686-linux-gnu CFLAGS=-m32 LDFLAGS=-m32
-  - os: linux
-    dist: trusty
-    compiler: gcc
-    env: codecov=true BUILD=x86_64-linux-gnu CFLAGS=-m64 LDFLAGS=-m64
-  - os: linux
-    dist: trusty
-    compiler: clang
-    env: codecov=true GCOV=llvm-cov-3.5
-    addons:
-      apt:
-        packages:
-          - llvm-3.5
-    install:
-      - wget https://github.com/linux-test-project/lcov/releases/download/v1.13/lcov-1.13.tar.gz
-      - tar -xzf lcov-1.13.tar.gz
-      - export PATH=`pwd`/lcov-1.13/bin/:$PATH
+
+os:
+  - linux
+  - osx
+
+compiler:
+  - gcc
+  - clang
+
+env:
+  - TASK=check CONFIG_FLAGS="--enable-Werror" CFLAGS=-m64 LDFLAGS=-m64
+  - TASK=check CONFIG_FLAGS="--enable-Werror" CFLAGS=-m32 LDFLAGS=-m32
+  - TASK=distcheck DISTCHECK_CONFIGURE_FLAGS="-enable-Werror"
+  - codecov=true TASK=check CONFIG_FLAGS="--enable-code-coverage"
 
 addons:
   apt:
     packages:
     - gcc-multilib
-    - lcov
+
+matrix:
+  include:
+  - os: linux
+    dist: trusty
+    compiler: clang
+    addons:
+      apt:
+        packages:
+        - llvm-3.5
+  - os: linux
+    dist: trusty
+    compiler: gcc
+  exclude:
+  - os: osx
+    compiler: gcc
+
+install:
+  - |
+    if [[ $codecov ]]; then
+        wget https://github.com/linux-test-project/lcov/releases/download/v1.13/lcov-1.13.tar.gz
+        tar -xzf lcov-1.13.tar.gz
+        export PATH=`pwd`/lcov-1.13/bin/:$PATH
+    fi
 
 script:
-    - autoreconf -iv
-    - ./configure --enable-Werror
-    - DISTCHECK_CONFIGURE_FLAGS="-enable-Werror" make distcheck
-    - >
-      if [[ $codecov ]]; then
-        ./configure --enable-code-coverage;
-        make clean;
-        make check-code-coverage;
-        bash <(curl -s https://codecov.io/bash) -X gcov;
-      fi
+  - autoreconf -iv
+  - ./configure $CONFIG_FLAGS
+  - DISTCHECK_CONFIGURE_FLAGS="-enable-Werror" make distcheck
+
+after_success:
+  - |
+    if [[ $codecov ]]; then
+      make code-coverage-capture
+      bash <(curl -s https://codecov.io/bash) -X gcov;
+    fi
