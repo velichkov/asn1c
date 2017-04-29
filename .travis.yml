@@ -9,28 +9,53 @@ compiler:
   - clang
 
 env:
-  - TASK=check CONFIG_FLAGS="--enable-Werror" CFLAGS=-m64 LDFLAGS=-m64
-  - TASK=check CONFIG_FLAGS="--enable-Werror" CFLAGS=-m32 LDFLAGS=-m32
-  - TASK=distcheck DISTCHECK_CONFIGURE_FLAGS="-enable-Werror"
-  - codecov=true TASK=check CONFIG_FLAGS="--enable-code-coverage"
+  - &check64 TASK=check CONFIG_FLAGS="--enable-Werror" CFLAGS=-m64 LDFLAGS=-m64
+  - &check32 TASK=check CONFIG_FLAGS="--enable-Werror" CFLAGS=-m32 LDFLAGS=-m32
+  - &distcheck TASK=distcheck DISTCHECK_CONFIGURE_FLAGS="-enable-Werror"
+  - &codecov TASK=check CONFIG_FLAGS="--enable-code-coverage" codecov=true
 
 addons:
   apt:
+    sources:
+    - llvm-toolchain-precise-3.5
     packages:
     - gcc-multilib
+    - llvm-3.5 llvm-3.5-runtime libllvm3.5
 
 matrix:
   include:
   - os: linux
     dist: trusty
-    compiler: clang
-    addons:
-      apt:
-        packages:
-        - llvm-3.5
+    compiler: gcc
+    env: *check64
   - os: linux
     dist: trusty
     compiler: gcc
+    env: *check32
+  - os: linux
+    dist: trusty
+    compiler: gcc
+    env: *distcheck
+  - os: linux
+    dist: trusty
+    compiler: gcc
+    env: *codecov
+  - os: linux
+    dist: trusty
+    compiler: clang
+    env: *check64
+  - os: linux
+    dist: trusty
+    compiler: clang
+    env: *check32
+  - os: linux
+    dist: trusty
+    compiler: clang
+    env: *distcheck
+  - os: linux
+    dist: trusty
+    compiler: clang
+    env: *codecov
   exclude:
   - os: osx
     compiler: gcc
@@ -38,15 +63,18 @@ matrix:
 install:
   - |
     if [[ $codecov ]]; then
-        wget https://github.com/linux-test-project/lcov/releases/download/v1.13/lcov-1.13.tar.gz
-        tar -xzf lcov-1.13.tar.gz
-        export PATH=`pwd`/lcov-1.13/bin/:$PATH
+      wget https://github.com/linux-test-project/lcov/releases/download/v1.13/lcov-1.13.tar.gz
+      tar -xzf lcov-1.13.tar.gz
+      export PATH=`pwd`/lcov-1.13/bin/:$PATH
+      if [[ $CC == "clang" && $TRAVIS_OS_NAME == "linux" ]]; then
+        export GCOV=llvm-cov-3.5
+      fi
     fi
 
 script:
   - autoreconf -iv
   - ./configure $CONFIG_FLAGS
-  - DISTCHECK_CONFIGURE_FLAGS="-enable-Werror" make distcheck
+  - make $TASK || for file in $(find . -name test-suite.log); do echo $file; cat $file; done
 
 after_success:
   - |
