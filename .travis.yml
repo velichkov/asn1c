@@ -1,17 +1,26 @@
 language: c
 compiler:
-  - gcc
-  - clang
+  - clang-4.0
+
 before_install:
-  - sudo apt-get install -y gcc-multilib lcov libasan* libclang-3.9-dev
+  - |
+    sudo add-apt-repository "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main"
+    wget -O - http://apt.llvm.org/llvm-snapshot.gpg.key|sudo apt-key add -
+  - sudo apt-get update
+
+install:
+  - sudo apt-get install -y clang-4.0 libclang-4.0-dev
+  - sudo apt-get install -y gcc-multilib lcov libasan*
   - gem install coveralls-lcov
+
 script:
+    - export
+    - $CC --version
+    - dpkg -L clang-4.0 libclang-4.0-dev
+    - find /usr -name *clang*
     - autoreconf -iv
     - ./configure --enable-Werror --enable-code-coverage
     - make -j8
     - make check
-    - make distcheck
-after_success:
-  - test "x$CC" = "xgcc" -o "x$CC" = "xclang" && make code-coverage-capture && coveralls-lcov asn1c-*-coverage.info
 after_failure:
     - find . -name test-suite.log -exec tail -v -n +1 {} +
