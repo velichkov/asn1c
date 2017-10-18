@@ -1748,7 +1748,7 @@ OCTET_STRING_free(const asn_TYPE_descriptor_t *td, void *sptr,
     case ASFM_FREE_UNDERLYING_AND_RESET:
         memset(sptr, 0,
                td->specifics
-                   ? ((const asn_OCTET_STRING_specifics_t *)(td->specifics))
+                   ? (size_t)((const asn_OCTET_STRING_specifics_t *)(td->specifics))
                          ->struct_size
                    : sizeof(OCTET_STRING_t));
         break;
@@ -1893,7 +1893,7 @@ OCTET_STRING_random_length_constrained(
         if(pc->flags & APC_CONSTRAINED) {
             long suggested_upper_bound = pc->upper_bound < (ssize_t)max_length
                                              ? pc->upper_bound
-                                             : max_length;
+                                             : (ssize_t)max_length;
             if(max_length <= (size_t)pc->lower_bound) {
                 return pc->lower_bound;
             }
