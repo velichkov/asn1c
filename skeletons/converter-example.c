@@ -123,7 +123,10 @@ ats_simple_name(enum asn_transfer_syntax syntax) {
         return "XER";
     case ATS_UNALIGNED_BASIC_PER:
     case ATS_UNALIGNED_CANONICAL_PER:
-        return "PER";
+        return "UPER";
+    case ATS_ALIGNED_BASIC_PER:
+    case ATS_ALIGNED_CANONICAL_PER:
+        return "APER";
     default:
         return "<?>";
     }
