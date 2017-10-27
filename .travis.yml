@@ -1,28 +1,12 @@
-os:
-    - linux
-    - osx
+os: osx
 osx_image: xcode9.1
 language: c
-compiler:
-  - gcc
-  - clang
+compiler: clang
 env:
-  - TASK=check CONFIG_FLAGS="--enable-Werror --enable-test-Werror --enable-code-coverage"
-  - TASK=distcheck
-matrix:
-  exclude:
-    - os: osx
-      compiler: gcc
-    - os: osx
-      env: TASK=distcheck
-before_install:
-  - sudo apt-get install -y gcc-multilib lcov libasan*
-  - gem install coveralls-lcov
+  - TASK=check CONFIG_FLAGS="--enable-Werror --enable-test-Werror"
 script:
   - autoreconf -iv
   - ./configure $CONFIG_FLAGS
   - make $TASK
-after_success:
-  - test "x$CC" = "xgcc" -o "x$CC" = "xclang" && make code-coverage-capture && coveralls-lcov asn1c-*-coverage.info
 after_failure:
-  - find . -name test-suite.log -exec tail -v -n +1 {} +
+  - find . -name test-suite.log -exec tail -n +1 {} +
