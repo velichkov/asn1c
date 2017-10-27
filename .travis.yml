@@ -5,6 +5,7 @@ compiler: clang
 env:
   - TASK=check CONFIG_FLAGS="--enable-Werror --enable-test-Werror"
 script:
+  - export
   - autoreconf -iv
   - ./configure $CONFIG_FLAGS
   - make $TASK
