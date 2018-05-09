@@ -1955,12 +1955,14 @@ OCTET_STRING_encode_aper(asn_TYPE_descriptor_t *td,
 		ASN_DEBUG("Encoding %d bytes (%lld), length in %d bits",
 				st->size, sizeinunits - csiz->lower_bound,
 				csiz->effective_bits);
-		ret = aper_put_length(po, csiz->upper_bound - csiz->lower_bound + 1, sizeinunits - csiz->lower_bound);
-		if(ret) ASN__ENCODE_FAILED;
-		if (st->size > 2) { /* X.691 #16 NOTE 1 */
-			if (aper_put_align(po) < 0)
-				ASN__ENCODE_FAILED;
-		}
+                if(csiz->effective_bits > 0) {
+			ret = aper_put_length(po, csiz->upper_bound - csiz->lower_bound + 1, sizeinunits - csiz->lower_bound);
+			if(ret) ASN__ENCODE_FAILED;
+			if (st->size > 2) { /* X.691 #16 NOTE 1 */
+				if (aper_put_align(po) < 0)
+					ASN__ENCODE_FAILED;
+			}
+                }
 		if(bpc) {
 			ret = OCTET_STRING_per_put_characters(po, st->buf,
 				sizeinunits, bpc, unit_bits,
