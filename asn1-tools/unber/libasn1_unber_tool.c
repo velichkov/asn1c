@@ -225,7 +225,7 @@ process_deeper(const char *fname, input_stream_t *ibs, output_stream_t *os,
         }
 
         if(!expect_eoc || tagbuf[0] || tagbuf[1])
-            print_TL(os, 0, ibs->bytesRead(ibs), level, constr, tblen,
+            print_TL(os, 0, ibs->bytesRead(ibs) - tblen, level, constr, tblen,
                      tlv_tag, tlv_len, effective_size);
 
         if(limit != -1) {
@@ -248,7 +248,7 @@ process_deeper(const char *fname, input_stream_t *ibs, output_stream_t *os,
 
         if(expect_eoc && !tagbuf[0] && !tagbuf[1]) {
             /* End of content octets */
-            print_TL(os, 1, ibs->bytesRead(ibs), level - 1, 1, 2, 0, -1,
+            print_TL(os, 1, ibs->bytesRead(ibs) - tblen, level - 1, 1, 2, 0, -1,
                      effective_size);
             return PD_FINISHED;
         }
