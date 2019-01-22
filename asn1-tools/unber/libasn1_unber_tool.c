@@ -642,6 +642,7 @@ unber_file(const char *fname) {
     ifs.istream.nextChar = file_input_stream_nextChar;
     ifs.istream.bytesRead = file_input_stream_bytesRead;
     ifs.fp = fp;
+    ifs.offset = 0;
 
     struct file_output_stream ofs;
     ofs.ostream.vprintf = file_output_stream_vprintf;
