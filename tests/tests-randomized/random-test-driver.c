@@ -22,6 +22,7 @@ static const struct encoding_map {
     {"DER", "der", ATS_DER},
     {"OER", "oer", ATS_CANONICAL_OER},
     {"UPER", "uper", ATS_UNALIGNED_CANONICAL_PER},
+    {"APER", "aper", ATS_ALIGNED_BASIC_PER},
     {"XER", "xer", ATS_CANONICAL_XER},
 };
 
@@ -52,7 +53,7 @@ static void __attribute__((constructor)) initialize() {
     syntax = lookup_syntax(data_dir);
     if(syntax == ATS_INVALID) {
         fprintf(stderr,
-                "Expected ASN1_DATA_DIR={der,oer,uper,xer} environment "
+                "Expected ASN1_DATA_DIR={der,oer,uper,aper,xer} environment "
                 "variable.\n");
         exit(EX_UNAVAILABLE);
     }
@@ -93,6 +94,7 @@ usage(const char *progname) {
             "BER)\n"
             "   OER             Canonical Octet Encoding Rules\n"
             "   UPER            Canonical Unaligned Packed Encoding Rules\n"
+            "   APER            Basic Aligned Packed Encoding Rules\n"
             "   XER             XML Encoding Rules\n",
             progname);
 }
