@@ -119,6 +119,61 @@ uper_put_nsnnwn(asn_per_outp_t *po, int n) {
 	return per_put_few_bits(po, n, 8 * bytes);
 }
 
+/*
+ * Get ALIGNED normally small non-negative whole number.
+ * ITU-T X.691 (08/2015) #11.6
+ */
+ssize_t aper_get_nsnnwn(asn_per_data_t *pd)
+{
+	ssize_t value;
+
+	value = per_get_few_bits(pd, 7);  /* get ext bit with alignment */
+	if (value == -1) {
+		return -1;
+	} else if (!(value & 0x40)) { /* less then or equal to 63, #11.6.1 */
+		return value;
+	}
+
+	/* #11.6.2 */
+	value = per_get_few_bits(pd, 8);
+	if (value == -1) {
+		return -1;
+	}
+
+	return per_get_few_bits(pd, 8 * value);
+}
+
+/*
+ * Put ALIGNED normally small non-negative whole number.
+ * ITU-T X.691 (08/2015) #11.6
+ */
+int aper_put_nsnnwn(asn_per_outp_t *po, uint32_t n)
+{
+	uint32_t bytes = 0;
+
+	if(n <= 63) { /* #11.6.1 */
+		return per_put_few_bits(po, n, 7);
+	}
+
+	/* #11.6.2 */
+	if(per_put_few_bits(po, 0x40 /*ext bit with alignment */, 7)) {
+		return -1;
+	}
+
+	if(n < 256)
+		bytes = 1;
+	else if(n < 65536)
+		bytes = 2;
+	else if(n < 256 * 65536)
+		bytes = 3;
+	else
+		return -1;	/* This is not a "normally small" value */
+
+	if(per_put_few_bits(po, bytes, 8))
+		return -1;
+
+	return per_put_few_bits(po, n, 8 * bytes);
+}
 
 /* X.691-2008/11, #11.5.6 -> #11.3 */
 int uper_get_constrained_whole_number(asn_per_data_t *pd, unsigned long *out_value, int nbits) {
@@ -310,8 +365,9 @@ aper_get_length(asn_per_data_t *pd, int range, int ebits, int *repeat) {
 
 	*repeat = 0;
 
+	/* ITU-T X.691 (08/2015) #11.9 NOTE2 and #11.9.3.3 */
 	if (range <= 65536 && range >= 0)
-		return aper_get_nsnnwn(pd, range);
+		return aper_get_constrained_whole_number(pd, range);
 
 	if (aper_get_align(pd) < 0)
 		return -1;
@@ -354,16 +410,17 @@ aper_get_nslength(asn_per_data_t *pd) {
 }
 
 ssize_t
-aper_get_nsnnwn(asn_per_data_t *pd, int range) {
+aper_get_constrained_whole_number(asn_per_data_t *pd, int range) {
 	ssize_t value;
 	int bytes = 0;
 
-	ASN_DEBUG("getting nsnnwn with range %d", range);
+	ASN_DEBUG("getting constrained whole number with range %d", range);
 
+	/* ITU-T X.691 (08/2015) #11.5.7.1*/
 	if(range <= 255) {
 		int i;
 
-		if (range < 0) return -1;
+		if (range < 0) return -1; //TODO: not symetric with aper_put_constrained_whole_number
 		/* 1 -> 8 bits */
 		for (i = 1; i <= 8; i++) {
 			int upper = 1 << i;
@@ -402,9 +459,9 @@ aper_put_length(asn_per_outp_t *po, int range, size_t length) {
 
 	ASN_DEBUG("APER put length %zu with range %d", length, range);
 
-	/* 10.9 X.691 Note 2 */
+	/* ITU-T X.691 (08/2015) #11.9 NOTE2 and #11.9.3.3 */
 	if (range <= 65536 && range >= 0)
-		return aper_put_nsnnwn(po, range, length);
+		return aper_put_constrained_whole_number(po, range, length);
 
 	if (aper_put_align(po) < 0)
 		return -1;
@@ -443,11 +500,11 @@ aper_put_nslength(asn_per_outp_t *po, size_t length) {
 }
 
 int
-aper_put_nsnnwn(asn_per_outp_t *po, int range, int number) {
+aper_put_constrained_whole_number(asn_per_outp_t *po, int range, int number) {
 	int bytes;
 
-    ASN_DEBUG("aper put nsnnwn %d with range %d", number, range);
-	/* 10.5.7.1 X.691 */
+    ASN_DEBUG("aper put constrained whole number %d with range %d", number, range);
+	/* ITU-T X.691 (08/2015) #11.5.7.1*/
 	if(range < 0) {
 		int i;
 		for (i = 1; ; i++) {

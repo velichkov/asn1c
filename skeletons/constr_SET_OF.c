@@ -1230,13 +1230,14 @@ SET_OF_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 	}
 
 	if(ct && ct->effective_bits >= 0) {
-		/* X.691, #19.5: No length determinant */
-		nelems = aper_get_nsnnwn(pd, ct->upper_bound - ct->lower_bound + 1);
+		/* ITU-T X.691 (08/2015) #20.6 */
+		nelems = aper_get_constrained_whole_number(pd, ct->upper_bound - ct->lower_bound + 1);
 		ASN_DEBUG("Preparing to fetch %ld+%ld elements from %s",
 		          (long)nelems, ct->lower_bound, td->name);
 		if(nelems < 0)  ASN__DECODE_STARVED;
 		nelems += ct->lower_bound;
 	} else {
+		/* ITU-T X.691 (08/2015) #20.5: No length determinant */
 		nelems = -1;
 	}
 

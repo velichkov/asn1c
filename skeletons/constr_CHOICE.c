@@ -1055,7 +1055,8 @@ CHOICE_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 	} else {
 		if(specs->ext_start == -1)
 			ASN__DECODE_FAILED;
-		value = uper_get_nsnnwn(pd);
+		/* ITU-T X.691 (08/2015) #23.8: the chosen alternative does not lie within the extension root */
+		value = aper_get_nsnnwn(pd);
 		if(value < 0) ASN__DECODE_STARVED;
 		value += specs->ext_start;
 		if((unsigned)value >= td->elements_count)
@@ -1166,7 +1167,8 @@ CHOICE_encode_aper(const asn_TYPE_descriptor_t *td,
 		asn_enc_rval_t rval = {0,0,0};
 		if(specs->ext_start == -1)
 			ASN__ENCODE_FAILED;
-		if(aper_put_nsnnwn(po, ct->range_bits, present - specs->ext_start))
+		/* ITU-T X.691 (08/2015) #23.8: the chosen alternative does not lie within the extension root */
+		if(aper_put_nsnnwn(po, present - specs->ext_start))
 			ASN__ENCODE_FAILED;
 		if(aper_open_type_put(elm->type, elm->encoding_constraints.per_constraints,
 		                      memb_ptr, po))

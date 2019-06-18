@@ -57,14 +57,41 @@ ssize_t aper_get_length(asn_per_data_t *pd, int range,
 ssize_t uper_get_nslength(asn_per_data_t *pd);
 ssize_t aper_get_nslength(asn_per_data_t *pd);
 
-/*
- * Get the normally small non-negative whole number.
+/** Get UNALIGNED normally small non-negative whole number.
+ *
+ * ITU-T X.691 (08/2015) #11.6
+ *
+ * @param[in] pd position inside PER bit stream
+ * @return the non-negative small number or -1 on error
  */
 ssize_t uper_get_nsnnwn(asn_per_data_t *pd);
-ssize_t aper_get_nsnnwn(asn_per_data_t *pd, int range);
 
-/* X.691-2008/11, #11.5.6 */
+/** Get ALIGNED normally small non-negative whole number.
+ *
+ * ITU-T X.691 (08/2015) #11.6
+ *
+ * @param[in] pd position inside PER bit stream
+ * @return the non-negative small number or -1 on error
+ */
+ssize_t aper_get_nsnnwn(asn_per_data_t *pd);
+
+/** Get UNALIGNED constrained whole number
+ *
+ * ITU-T X.691 (08/2015), #11.5.6
+ *
+ * @param[in] pd position inside PER bit stream
+ * @return the constrained whole number or -1 on error
+ */
 int uper_get_constrained_whole_number(asn_per_data_t *pd, unsigned long *v, int nbits);
+
+/** Get ALIGNED constrained whole number
+ *
+ * ITU-T X.691 (08/2015), #11.5.7
+ *
+ * @param[in] pd position inside PER bit stream
+ * @return the constrained whole number or -1 on error
+ */
+ssize_t aper_get_constrained_whole_number(asn_per_data_t *pd, int range);
 
 
 /* Temporary compatibility layer. Will get removed. */
@@ -85,8 +112,23 @@ int per_long_range_rebase(long v, long lb, long ub, unsigned long *output);
 /* The inverse operation: restores the value by the offset and its bounds. */
 int per_long_range_unrebase(unsigned long inp, long lb, long ub, long *outp);
 
-/* X.691-2008/11, #11.5 */
+/** Put UNALIGNED constrained whole number
+ *
+ * ITU-T X.691 (08/2015), #11.5.6
+ *
+ * @param[in] po PER output bit stream
+ * @return 0 on success or -1 on error
+ */
 int uper_put_constrained_whole_number_u(asn_per_outp_t *po, unsigned long v, int nbits);
+
+/** Put ALIGNED constrained whole number
+ *
+ * ITU-T X.691 (08/2015), #11.5.7
+ *
+ * @param[in] po PER output bit stream
+ * @return 0 on success or -1 on error
+ */
+int aper_put_constrained_whole_number(asn_per_outp_t *po, int range, int number);
 
 /*
  * X.691 (08/2015) #11.9 "General rules for encoding a length determinant"
@@ -106,19 +148,30 @@ int aper_put_align(asn_per_outp_t *po);
 int32_t aper_get_align(asn_per_data_t *pd);
 
 /*
- * Put the normally small length "n" to the Unaligned PER stream.
+ * Put the normally small length "n" to the UNALIGNED PER stream.
  * Returns 0 or -1.
  */
 int uper_put_nslength(asn_per_outp_t *po, size_t length);
 
 int aper_put_nslength(asn_per_outp_t *po, size_t length);
 
-/*
- * Put the normally small non-negative whole number.
+/** Put UNALIGNED normally small non-negative whole number.
+ *
+ * ITU-T X.691 (08/2015) #11.6
+ *
+ * @param[in] po PER output bit stream
+ * @return 0 on success or -1 on error
  */
 int uper_put_nsnnwn(asn_per_outp_t *po, int n);
 
-int aper_put_nsnnwn(asn_per_outp_t *po, int range, int number);
+/** Put ALIGNED normally small non-negative whole number.
+ *
+ * ITU-T X.691 (08/2015) #11.6
+ *
+ * @param[in] po PER output bit stream
+ * @return 0 on success or -1 on error
+ */
+int aper_put_nsnnwn(asn_per_outp_t *po, uint32_t n);
 
 #ifdef __cplusplus
 }
