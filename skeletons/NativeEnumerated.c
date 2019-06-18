@@ -320,7 +320,6 @@ NativeEnumerated_encode_aper(const asn_TYPE_descriptor_t *td,
 	er.encoded = 0;
 
 	native = *(const long *)sptr;
-	if(native < 0) ASN__ENCODE_FAILED;
 
 	key.nat_value = native;
 	kf = bsearch(&key, specs->value2enum, specs->map_count,
