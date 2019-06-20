@@ -282,6 +282,7 @@ asn_compile() {
     rm -f converter-example.c
     ln -sf "../${srcdir}/random-test-driver.c" || cp "../${srcdir}/random-test-driver.c" .
     {
+    echo "CFLAGS+=${CFLAGS}"
     echo "CFLAGS+= -DASN1_TEXT='$short_asn'";
     echo "ASN_PROGRAM = random-test-driver"
     echo "ASN_PROGRAM_SRCS = random-test-driver.c"
