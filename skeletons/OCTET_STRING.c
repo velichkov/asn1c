@@ -1790,13 +1790,14 @@ OCTET_STRING_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 
 		repeat = 0;
 		/* Get the PER length */
-		if (csiz->upper_bound - csiz->lower_bound == 0)
+		if (csiz->upper_bound - csiz->lower_bound <= 0) {
 			/* Indefinite length case */
 			raw_len = aper_get_length(pd, -1, csiz->effective_bits, &repeat);
-		else
+		} else {
 			raw_len = aper_get_length(pd, csiz->upper_bound - csiz->lower_bound + 1, csiz->effective_bits, &repeat);
+			raw_len += csiz->lower_bound;
+		}
 		if(raw_len < 0) RETURN(RC_WMORE);
-		raw_len += csiz->lower_bound;
 
 		ASN_DEBUG("Got PER length eb %ld, len %ld, %s (%s)",
 			(long)csiz->effective_bits, (long)raw_len,
