@@ -1803,11 +1803,6 @@ OCTET_STRING_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 			(long)csiz->effective_bits, (long)raw_len,
 			repeat ? "repeat" : "once", td->name);
 
-		if (raw_len > 2) { /* X.691 #16 NOTE 1 */
-			if (aper_get_align(pd) < 0)
-				RETURN(RC_FAIL);
-		}
-
 		if(bpc) {
 			len_bytes = raw_len * bpc;
 			len_bits = len_bytes * unit_bits;
@@ -1818,6 +1813,12 @@ OCTET_STRING_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 				st->bits_unused = 8 - (len_bits & 0x7);
 			/* len_bits be multiple of 16K if repeat is set */
 		}
+
+		if (len_bytes > 2) { /* X.691 #16 NOTE 1 */
+			if (aper_get_align(pd) < 0)
+				RETURN(RC_FAIL);
+		}
+
 		p = REALLOC(st->buf, st->size + len_bytes + 1);
 		if(!p) RETURN(RC_FAIL);
 		st->buf = (uint8_t *)p;
