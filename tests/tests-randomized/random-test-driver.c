@@ -279,6 +279,7 @@ check_random_roundtrip(enum asn_transfer_syntax syntax, size_t max_random_value_
                         er.encoded, rval.consumed);
                 fprintf(stderr, "Original random structure:\n");
                 asn_fprint(stderr, &asn_DEF_T, structure);
+                xer_fprint(stderr, &asn_DEF_T, structure);
                 fprintf(stderr, "Partially decoded %s value:\n", ASN1_STR);
                 asn_fprint(stderr, &asn_DEF_T, decoded_structure);
                 assert((ssize_t)rval.consumed == er.encoded);
@@ -291,6 +292,7 @@ check_random_roundtrip(enum asn_transfer_syntax syntax, size_t max_random_value_
                     rval.consumed);
             fprintf(stderr, "Original random structure:\n");
             asn_fprint(stderr, &asn_DEF_T, structure);
+            xer_fprint(stderr, &asn_DEF_T, structure);
             exit(EX_SOFTWARE);
         }
 
