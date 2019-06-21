@@ -1790,10 +1790,11 @@ OCTET_STRING_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 
 		repeat = 0;
 		/* Get the PER length */
-		if (csiz->upper_bound - csiz->lower_bound <= 0) {
-			/* Indefinite length case */
+		if ((csiz->upper_bound - csiz->lower_bound <= 0) || (csiz->upper_bound > 65535)){
+			/* Indefinite length case or #11.9.3.3 upper bound more then 64K */
 			raw_len = aper_get_length(pd, -1, csiz->effective_bits, &repeat);
 		} else {
+			/* #11.9.3.3 Upper bound less then 64K */
 			raw_len = aper_get_length(pd, csiz->upper_bound - csiz->lower_bound + 1, csiz->effective_bits, &repeat);
 			raw_len += csiz->lower_bound;
 		}
