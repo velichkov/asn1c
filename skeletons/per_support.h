@@ -141,7 +141,21 @@ int aper_put_constrained_whole_number(asn_per_outp_t *po, int range, int number)
 ssize_t uper_put_length(asn_per_outp_t *po, size_t whole_length,
                         int *opt_need_eom);
 
-ssize_t aper_put_length(asn_per_outp_t *po, int range, size_t length);
+/**Put the length "whole_length" to the Aligned PER stream.
+ *
+ * According to X.691 (08/2015) #11.9 "General rules for encoding a length determinant"
+ * See #11.9.3.1 to #11.9.3.8.4
+ *
+ * @param ranage
+ * @param length
+ * @param[in] opt_need_eom It will be set to 1 if final 0-length is needed.
+ *                         In that case, invoke aper_put_length(po, 0, 0, 0)
+ *                         after encoding the last block.
+ * @returns The number of units which may be flushed
+ * in the next units saving iteration.
+ */
+ssize_t aper_put_length(asn_per_outp_t *po, int range, size_t length,
+                        int *opt_need_eom);
 
 /* Align the current bit position to octet bundary */
 int aper_put_align(asn_per_outp_t *po);
