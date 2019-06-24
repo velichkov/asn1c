@@ -1255,8 +1255,7 @@ SET_OF_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 	do {
 		int i;
 		if(nelems < 0) {
-			nelems = aper_get_length(pd, ct ? ct->upper_bound - ct->lower_bound + 1 : -1,
-			                         ct ? ct->effective_bits : -1, &repeat);
+			nelems = aper_get_length(pd, -1, ct ? ct->effective_bits : -1, &repeat);
 			ASN_DEBUG("Got to decode %d elements (eff %d)",
 			          (int)nelems, (int)(ct ? ct->effective_bits : -1));
 			if(nelems < 0) ASN__DECODE_STARVED;
