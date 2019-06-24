@@ -166,6 +166,8 @@ static syntax_selector output_encodings[] = {
      "Output as Aligned PER (Packed Encoding Rules)"},
     {"xer", ATS_BASIC_XER, CODEC_OFFSET(xer_encoder),
      "Output as XER (XML Encoding Rules)"},
+    {"cxer", ATS_CANONICAL_XER, CODEC_OFFSET(xer_encoder),
+     "Output as Canonical XER (XML Encoding Rules)"},
     {"text", ATS_NONSTANDARD_PLAINTEXT, CODEC_OFFSET(print_struct),
      "Output as plain semi-structured text"},
     {"null", ATS_INVALID, CODEC_OFFSET(print_struct),
