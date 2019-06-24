@@ -1128,7 +1128,7 @@ SET_OF_encode_aper(const asn_TYPE_descriptor_t *td,
 
     er.encoded = 0;
 
-    ASN_DEBUG("Encoding %s as SET OF (%d)", td->name, list->count);
+    ASN_DEBUG("Encoding %s as SET OF size (%d) using ALIGNED PER", td->name, list->count);
 
     if(constraints) ct = &constraints->size;
     else if(td->encoding_constraints.per_constraints)
@@ -1151,12 +1151,8 @@ SET_OF_encode_aper(const asn_TYPE_descriptor_t *td,
 
     }
 
-    if(ct && ct->effective_bits >= 0) {
-        /* X.691, #19.5: No length determinant */
-        /*if(per_put_few_bits(po, list->count - ct->lower_bound,
-                            ct->effective_bits))
-            ASN__ENCODE_FAILED;*/
-
+    /* X.691, #20.5: No length determinant */
+    if(ct && ct->effective_bits > 0) {
         if (aper_put_length(po, ct->upper_bound - ct->lower_bound + 1, list->count - ct->lower_bound, 0) < 0) {
             ASN__ENCODE_FAILED;
         }
@@ -1228,6 +1224,8 @@ SET_OF_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 	}
 	list = _A_SET_FROM_VOID(st);
 
+    ASN_DEBUG("Decoding %s as SET OF", td->name);
+
 	/* Figure out which constraints to use */
 	if(constraints) ct = &constraints->size;
 	else if(td->encoding_constraints.per_constraints)
@@ -1240,15 +1238,17 @@ SET_OF_decode_aper(const asn_codec_ctx_t *opt_codec_ctx,
 		if(value) ct = 0;	/* Not restricted! */
 	}
 
-	if(ct && ct->effective_bits >= 0) {
+	if(ct && ct->effective_bits > 0) {
 		/* ITU-T X.691 (08/2015) #20.6 */
 		nelems = aper_get_constrained_whole_number(pd, ct->upper_bound - ct->lower_bound + 1);
 		ASN_DEBUG("Preparing to fetch %ld+%ld elements from %s",
 		          (long)nelems, ct->lower_bound, td->name);
 		if(nelems < 0)  ASN__DECODE_STARVED;
 		nelems += ct->lower_bound;
+	} else if (ct && ct->lower_bound == ct->upper_bound) {
+		/* ITU-T X.691 (08/2015) #20.5: If the number of components is fixed */
+		nelems = ct->lower_bound;
 	} else {
-		/* ITU-T X.691 (08/2015) #20.5: No length determinant */
 		nelems = -1;
 	}
 
