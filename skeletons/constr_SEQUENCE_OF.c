@@ -263,14 +263,17 @@ SEQUENCE_OF_encode_aper(const asn_TYPE_descriptor_t *td,
 			ASN__ENCODE_FAILED;
 	}
 
-	if(ct && ct->effective_bits >= 0) {
-		/* X.691, #19.5: No length determinant */
-/*		 if(per_put_few_bits(po, list->count - ct->lower_bound,
-				 ct->effective_bits))
-			 ASN__ENCODE_FAILED;
-*/
+	if(ct && ct->effective_bits > 0) {
 		if (aper_put_length(po, ct->upper_bound - ct->lower_bound + 1, list->count - ct->lower_bound, 0) < 0)
 			ASN__ENCODE_FAILED;
+	} else if(list->count == 0) {
+		/* When the list is empty add only the length determinant
+		 * X.691, #20.6 and #11.9.4.1
+		 */
+		if (aper_put_length(po, -1, 0, 0)) {
+			ASN__ENCODE_FAILED;
+		}
+		ASN__ENCODED_OK(er);
 	}
 
 	for(seq = -1; seq < list->count;) {
