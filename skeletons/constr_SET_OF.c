@@ -273,6 +273,7 @@ struct _el_buffer {
 	size_t length;
 	size_t allocated_size;
     unsigned bits_unused;
+    const void *memb_ptr;
 };
 /* Append bytes to the above structure */
 static int _el_addbytes(const void *buffer, size_t size, void *el_buf_ptr) {
@@ -372,6 +373,7 @@ SET_OF__encode_sorted(const asn_TYPE_member_t *elm,
     for(edx = 0; edx < list->count; edx++) {
         const void *memb_ptr = list->array[edx];
         struct _el_buffer *encoding_el = &encoded_els[edx];
+		encoding_el->memb_ptr = memb_ptr;
         asn_enc_rval_t erval = {0,0,0};
 
         if(!memb_ptr) break;
@@ -1183,13 +1185,45 @@ SET_OF_encode_aper(const asn_TYPE_descriptor_t *td,
             if(may_encode < 0) ASN__ENCODE_FAILED;
         }
 
-	while(may_encode--) {
+
+        while(may_encode--) {
             const struct _el_buffer *el = &encoded_els[seq++];
-            if(asn_put_many_bits(po, el->buf,
-                                 (8 * el->length) - el->bits_unused) < 0) {
-                break;
+            if(!el) {
+                ASN__ENCODE_FAILED;
             }
-	}
+
+            /* In APER we can't reuse the encoded buffers as in UPER
+             * as alignment bits may be needed and this depends on the inner type
+             * and its constrains.
+             *
+             * Examples that do NOT require aglignment
+             *
+             *	T ::= SET (SIZE(0..2)) OF BOOLEAN
+             *	T ::= SET (SIZE(0..2)) OF PrintableString (SIZE(2))
+             *
+             * Examples that requires alignment
+             *
+             *	T ::= SET (SIZE(0..2)) OF PrintableString
+             *	T ::= SET (SIZE(0..2)) OF PrintableString (FROM("A".."Z"))
+             *
+             * The SET_OF__encode_sorted uses new buffers to encode each element
+             * and because of this no padding is inserted so we need to re-encode
+             * all elements in the current `po` buffer so the padding bits will
+             * be added as needed.
+             */
+
+            if(!elm->type->op->aper_encoder) {
+                ASN__ENCODE_FAILED;
+            }
+            er = elm->type->op->aper_encoder(
+                    elm->type,
+                    elm->encoding_constraints.per_constraints,
+                    el->memb_ptr,
+                    po);
+            if(er.encoded == -1)
+                return er;
+        }
+
         if(need_eom && aper_put_length(po, 0, 0, 0))
             ASN__ENCODE_FAILED; /* End of Message length */
     }
