@@ -1092,6 +1092,9 @@ SET_OF_encode_uper(const asn_TYPE_descriptor_t *td,
 
         for(edx = encoded_edx; edx < encoded_edx + may_encode; edx++) {
             const struct _el_buffer *el = &encoded_els[edx];
+			if (!el) {
+				ASN__ENCODE_FAILED;
+			}
             if(asn_put_many_bits(po, el->buf,
                                  (8 * el->length) - el->bits_unused) < 0) {
                 break;
