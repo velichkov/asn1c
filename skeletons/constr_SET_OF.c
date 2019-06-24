@@ -1159,7 +1159,15 @@ SET_OF_encode_aper(const asn_TYPE_descriptor_t *td,
 
         if (aper_put_length(po, ct->upper_bound - ct->lower_bound + 1, list->count - ct->lower_bound, 0) < 0) {
             ASN__ENCODE_FAILED;
-	}
+        }
+    } else if(list->count == 0) {
+        /* When the list is empty add only the length determinant
+         * X.691, #20.6 and #11.9.4.1
+         */
+        if (aper_put_length(po, -1, 0, 0)) {
+            ASN__ENCODE_FAILED;
+        }
+        ASN__ENCODED_OK(er);
     }
 
     /*
