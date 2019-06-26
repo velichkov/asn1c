@@ -3,36 +3,36 @@ SET (SIZE(0)) OF NULL
 SET (SIZE(1)) OF NULL
 SET (SIZE(0..2)) OF NULL
 SET (SIZE(1..2)) OF NULL
-SET (SIZE(1..MAX)) OF NULL
+SET (SIZE(1..MAX)) OF NULL -- APER=TODO
 
 SET OF BOOLEAN
 SET (SIZE(0)) OF BOOLEAN
 SET (SIZE(1)) OF BOOLEAN
 SET (SIZE(0..2)) OF BOOLEAN
 SET (SIZE(1..2)) OF BOOLEAN
-SET (SIZE(1..MAX)) OF BOOLEAN
+SET (SIZE(1..MAX)) OF BOOLEAN -- APER=TODO
 
 SET OF PrintableString (SIZE(1))
 SET (SIZE(0)) OF PrintableString (SIZE(1))
 SET (SIZE(1)) OF PrintableString (SIZE(1))
 SET (SIZE(0..2)) OF PrintableString (SIZE(1))
 SET (SIZE(1..2)) OF PrintableString (SIZE(1))
-SET (SIZE(1..MAX)) OF PrintableString (SIZE(1))
+SET (SIZE(1..MAX)) OF PrintableString (SIZE(1)) -- APER=TODO
 
 SET OF PrintableString (FROM("A".."Z"))
 SET (SIZE(0)) OF PrintableString (FROM("A".."Z"))
-SET (SIZE(1)) OF PrintableString (FROM("A".."Z"))
-SET (SIZE(0..2)) OF PrintableString (FROM("A".."Z"))
-SET (SIZE(1..2)) OF PrintableString (FROM("A".."Z"))
-SET (SIZE(1..MAX)) OF PrintableString (FROM("A".."Z"))
+SET (SIZE(1)) OF PrintableString (FROM("A".."Z")) -- APER=TODO
+SET (SIZE(0..2)) OF PrintableString (FROM("A".."Z")) -- APER=TODO
+SET (SIZE(1..2)) OF PrintableString (FROM("A".."Z")) -- APER=TODO
+SET (SIZE(1..MAX)) OF PrintableString (FROM("A".."Z")) -- APER=TODO
 
 SET OF PrintableString (FROM("A".."Z"))
 
 SET OF BOOLEAN -- RMAX=70000
 SET (SIZE(2..MAX)) OF BOOLEAN -- RMAX=70000
-SET OF PrintableString (SIZE(1))  --RMAX=16384
+SET OF PrintableString (SIZE(1))  --RMAX=16384 APER=TODO
 
 -- Mainly verifies encoding when its size is 0.
 SET OF OCTET STRING (SIZE(1))
-SET (SIZE(1..MAX,...)) OF OCTET STRING (SIZE(1))
-SET (SIZE(1..2,...)) OF OCTET STRING (SIZE(1))
+SET (SIZE(1..MAX,...)) OF OCTET STRING (SIZE(1)) -- APER=TODO
+SET (SIZE(1..2,...)) OF OCTET STRING (SIZE(1)) -- APER=TODO

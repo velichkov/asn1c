@@ -6,5 +6,5 @@ T ::= ENUMERATED { foo(0), bar(65535), ... }
 T ::= ENUMERATED { foo(0), bar(2147483647) }
 T ::= ENUMERATED { foo(0), bar(2147483647), ... }
 T ::= ENUMERATED { foo(0), ..., bar(2147483647) }
-T ::= ENUMERATED { foo(-2147483648), bar(0), baz(2147483647) }
-T ::= ENUMERATED { foo(-2147483648), ..., baz(2147483647) }
+T ::= ENUMERATED { foo(-2147483648), bar(0), baz(2147483647) } -- APER=TODO
+T ::= ENUMERATED { foo(-2147483648), ..., baz(2147483647) } -- APER=TODO
