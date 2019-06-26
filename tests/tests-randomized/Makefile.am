@@ -22,8 +22,7 @@ TESTS_ENVIRONMENT=                          \
     srcdir=${srcdir}                        \
     abs_builddir=${abs_builddir}            \
     abs_top_srcdir=${abs_top_srcdir}        \
-    abs_top_builddir=${abs_top_builddir}    \
-    ${srcdir}/check-bundles.sh
+    abs_top_builddir=${abs_top_builddir}
 
 TESTS =
 TESTS += bundles/00-NULL-bundle.txt
@@ -46,10 +45,23 @@ TESTS += bundles/16-SEQUENCE-bundle.txt
 TESTS += bundles/17-SEQUENCE-OF-bundle.txt
 TESTS += bundles/19-SET-OF-bundle.txt
 
+XFAIL_TESTS =
+#XFAIL_TESTS += bundles/03-ENUMERATED-bundle.txt
+
 EXTRA_DIST =                    \
     random-test-driver.c        \
     $(srcdir)/bundles/README    \
     $(srcdir)/bundles/*.txt
+
+TEST_EXTENSIONS = .txt
+TXT_LOG_COMPILER = $(srcdir)/check-bundles.sh
+TXT_LOG_DRIVER = env AM_TAP_AWK='$(AWK)' $(SHELL) \
+                  $(top_srcdir)/config/tap-driver.sh
+
+# IMPORTANT! The --bunle option has to be at the end!
+TXT_LOG_FLAGS = --max-failures 0 -e XER -e DER -e UPER -e OER -e APER --bundle
+
+$(TEST_LOGS): test-param-helper
 
 clean-local:
 	rm -rf .tmp.*

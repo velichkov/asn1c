@@ -18,22 +18,27 @@ usage(const char *progname) {
 
 static const char *
 search(const char *param, const char *haystack) {
+    static char static_buf[64];
 
     const char *p = strstr(haystack, param);
     if(p && p[strlen(param)] == '=') {
+
         const char *param_begin = &p[strlen(param) + 1];
         const char *param_end = param_begin;
+
         for(param_end = param_begin; param_end; param_end++) {
             switch(*param_end) {
-            case '0' ... '9':
-                continue;
-            default:
-                break;
+                case 0:
+                case '\n':
+                case '\r':
+                case ' ':
+                case '\t':
+                    break;
+                default:
+                    continue;
             }
             break;
         }
-
-        static char static_buf[64];
 
         if((param_end - param_begin) <= 0) {
             fprintf(stderr, "Parameter %s is malformed after '='\n", param);

@@ -292,6 +292,7 @@ dnl Use pandoc to generate manual pages.
 AC_PATH_PROG([PANDOC], pandoc)
 AM_CONDITIONAL([HAVE_PANDOC], [test -n "$PANDOC"])
 
+AC_REQUIRE_AUX_FILE([tap-driver.sh])
 AC_CONFIG_FILES([\
 tests/tests-c-compiler/check-src/Makefile   \
 tests/tests-asn1c-compiler/Makefile         \

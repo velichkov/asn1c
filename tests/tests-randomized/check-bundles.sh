@@ -36,7 +36,6 @@ export abs_builddir
 MAKE="${MAKE:-make}"
 FUZZ_TIME="${FUZZ_TIME:-10}"
 
-tests_succeeded=0
 tests_failed=0
 stop_after_failed=1  # We stop after 3 failures.
 need_clean_before_bundle=1  # Clean before testing a bundle file
@@ -44,15 +43,17 @@ need_clean_before_test=0    # Before each line in a bundle file
 encodings=""    # Default is to verify all supported ASN.1 transfer syntaxes
 parallelism=1
 asn1c_flags=""
+testcase=0
 
 make_clean_before_bundle() {
     if [ "${need_clean_before_bundle}" = "1" ] ; then
-        (cd "${RNDTEMP}" && Make clean) || :
+        (cd "${RNDTEMP}" && Make clean) 2>/dev/null || :
     fi
 }
 
 make_clean_before_test() {
     if [ "${need_clean_before_test}" = "1" ] ; then
+		exit 1; #TODO:
         Make clean
     else
         # Low resolution file system mtime prevents rapid testing
@@ -72,13 +73,13 @@ verify_asn_types_in_file() {
 
     make_clean_before_bundle
 
-    echo "Open [$filename]"
+    echo "# Open [$filename]"
     for mode in syntax full; do
-      if [ "x${mode}" = "xsyntax" ]; then
-        max_failures=1
-      else
-        max_failures="${stop_after_failed}"
-      fi
+      #if [ "x${mode}" = "xsyntax" ]; then
+      #  max_failures=1
+      #else
+      #  max_failures="${stop_after_failed}"
+      #fi
 
       line=0
       while read asn; do
@@ -91,9 +92,9 @@ verify_asn_types_in_file() {
             # We need a different line.
             continue;
         fi
-        verify_asn_type "$mode" "$asn" "in $filename $line"
+        verify_asn_type "$mode" "$asn" "in $filename $line" "$line"
         if [ "${tests_failed}" = "${max_failures}" ]; then
-            echo "STOP after ${tests_failed} failures, OK ${tests_succeeded}"
+            echo "Bail out! STOP after ${tests_failed} failures"
             exit 1
         fi
       done < "$filename"
@@ -104,33 +105,60 @@ verify_asn_type() {
     mode="$1"
     asn="$2"
     where="$3"
+    line="$4"
     shift 3
     test "x$asn" != "x" || usage
 
     if echo "$asn" | grep -v "::=" > /dev/null; then
         asn="T ::= $asn"
     fi
-    echo "Testing [$asn] ${where}"
+    echo "# Testing [$asn] ${where}"
 
     mkdir -p ${RNDTEMP}
 
+    testcase=`expr ${testcase} + 1`
+    testlog="${RNDTEMP}/test.$line.log"
+
     if [ "x${mode}" = "xsyntax" ]; then
-        if asn1c_invoke "${RNDTEMP}/test.asn1" "$asn" "$where" -P 2>&1 >/dev/null; then
+        if asn1c_invoke "${RNDTEMP}/test.asn1" "$asn" "$where" -P 1>>${testlog} 2>&1; then
+            echo "ok - line:$line mode:${mode}"
             return 0
         else
+            echo "not ok - line:${line} mode:${mode} ASN.1 ERROR"
             tests_failed=`expr ${tests_failed} + 1`
-            echo "FAIL: ASN.1 ERROR ${where}"
             return 1
         fi
     fi
 
-    if (set -e && cd "${RNDTEMP}" && compile_and_test "$asn" "${where}"); then
-        echo "OK [$asn] ${where}"
-        tests_succeeded=`expr ${tests_succeeded} + 1`
-    else
+    if !(set -e && cd "${RNDTEMP}" && compile_asn "$asn" "$where" "$line") 1>>${testlog} 2>&1; then
+        echo "not ok - line:$line mode:${mode}"
+        tail --lines=20 "${testlog}" 1>&2
         tests_failed=`expr ${tests_failed} + 1`
-        echo "FAIL [$asn] ${where}"
+        return 6
+    else
+        echo "ok - line:$line mode:compile"
+        rm -f "${testlog}"
     fi
+
+    # Set default encodings if needed
+    [ -z "$encodings" ] && encodings="XER DER UPER OER"
+
+    for enc in $encodings; do
+        [ "x$enc" = "x-e" -o -z "$enc" ] && continue;
+
+        testcase=`expr ${testcase} + 1`
+        testlog="${RNDTEMP}/test.$line.${enc}.log"
+        expected_result=$(get_param ${enc} "" "$asn")
+        [ "x$expected_result" != "x" ] && expected_result="# ${expected_result}"
+
+        if (set -e && cd "${RNDTEMP}" && test_asn "$asn" "${where}" "${enc}" "$line") 1>>${testlog} 2>&1; then
+            echo "ok - line:$line mode:${mode}, encoding:$enc ${expected_result}"
+            rm -f "${testlog}"
+        else
+            echo "not ok - line:$line mode:${mode}, encoding:${enc} ${expected_result}"
+            [ -f "${testlog}" ] && tail -n 20 "${testlog}" 1>&2
+        fi
+    done
 }
 
 Make() {
@@ -145,21 +173,22 @@ get_param() {
     "${abs_builddir}/test-param-helper" "${param}" "${default}" "${asn}"
 }
 
-# compile_and_test "<text>" "<where found>"
+# compile_asn "<text>" "<where found>"
 # This function is executed in the temporary test directory ${RNDTEMP}.
-compile_and_test() {
+compile_asn() {
     asn="$1"
     where="$2"
+    line="$3"
 
     if [ "x$CC" = "x" ]; then CCSTR=""; else CCSTR="CC=${CC} "; fi
-    reproduce_make="cd \"${RNDTEMP}\" && ${CCSTR}CFLAGS=\"${CFLAGS}\" ${MAKE}"
+    echo "cd \"${RNDTEMP}\" && ${CCSTR}CFLAGS=\"${CFLAGS}\" ${MAKE}" > .test-$line-compile
 
-    env > .test-environment
-    set > .test-set
+    env > .test-$line-environment
+    set > .test-$line-set
 
     make_clean_before_test
 
-    asn_compile "$asn" "$where"
+    asn_compile "$asn" "$where" "$line"
     if [ $? -ne 0 ]; then
         echo "Cannot compile ASN.1 $asn"
         return 1
@@ -172,72 +201,84 @@ compile_and_test() {
         echo "Cannot compile C for $asn in ${RNDTEMP}"
         return 2
     fi
+}
+
+# compile_asn "<text>"
+# This function is executed in the temporary test directory ${RNDTEMP}.
+test_asn() {
+    asn="$1"
+    where="$2"
+    enc="$3"
+    enc_arg="-e ${enc}"
+    line="$4"
 
     # Maximum size of the random data
     rmax=`get_param RMAX 128 "$asn"`
+
     if [ "0${rmax}" -lt 1 ]; then rmax=128; fi
 
-    echo "Checking random data encode-decode"
-    round_trip_check_cmd="${ASAN_ENV_FLAGS} ./random-test-driver -s ${rmax} ${encodings} -c"
-    echo "(${reproduce_make} && ${round_trip_check_cmd})" > .test-reproduce
+
+    echo "Checking random data encode-decode for ${enc}"
+    round_trip_check_cmd="${ASAN_ENV_FLAGS} ./random-test-driver -s ${rmax} ${enc_arg} -c"
     if eval "$round_trip_check_cmd"; then
         echo "Random test OK"
     else
-        { echo "RETRY:"; cat .test-reproduce ; }
+        echo "($(cat .test-$line-compile) && ${round_trip_check_cmd})" > .test-$line-reproduce;
+        echo "RETRY:"; cat .test-$line-reproduce ;
         return 3
-    fi
-
-    echo "Generating new random data"
-    rm -rf random-data
-    cmd="${ASAN_ENV_FLAGS} UBSAN_OPTIONS=print_stacktrace=1"
-    cmd="${cmd} ./random-test-driver -s ${rmax} ${encodings} -g random-data"
-    echo "(${reproduce_make} && ${cmd})" > .test-reproduce
-    if eval "$cmd" ; then
-        echo "Random data generated OK"
-    else
-        { echo "RETRY:"; cat .test-reproduce ; }
-        return 4
-    fi
-
-    # Do a LibFuzzer based testing
-    fuzz_cmd="${ASAN_ENV_FLAGS} UBSAN_OPTIONS=print_stacktrace=1"
-    fuzz_cmd="${fuzz_cmd} ./random-test-driver"
-    fuzz_cmd="${fuzz_cmd} -timeout=3 -max_total_time=${FUZZ_TIME} -max_len=${rmax}"
-
-    if grep "^fuzz:" Makefile >/dev/null ; then
-        echo "No fuzzer defined, skipping fuzzing"
-    else
-        fuzz_targets=`echo random-data/* | sed -e 's/random-data./fuzz-/g'`
-        {
-        echo "fuzz: $fuzz_targets"
-        echo "fuzz-%: random-data/% random-test-driver"
-        echo "	ASN1_DATA_DIR=\$< ${fuzz_cmd} \$<"
-        } >> Makefile
     fi
 
     # If LIBFUZZER_CFLAGS are properly defined, do the fuzz test as well
     if echo "${LIBFUZZER_CFLAGS}" | grep -i "[a-z]" > /dev/null; then
 
+        echo "Generating new random data for ${enc}"
+        rm -rf random-data
+        cmd="${ASAN_ENV_FLAGS} UBSAN_OPTIONS=print_stacktrace=1"
+        cmd="${cmd} ./random-test-driver -s ${rmax} ${enc_arg} -g random-data"
+        if eval "$cmd" ; then
+            echo "Random data generated OK"
+        else
+            echo "($(cat .test-$line-compile) && ${round_trip_check_cmd})" > .test-$line-reproduce;
+            echo "RETRY:"; cat .test-$line-reproduce ;
+            return 4
+        fi
+
+        # Do a LibFuzzer based testing
+        fuzz_cmd="${ASAN_ENV_FLAGS} UBSAN_OPTIONS=print_stacktrace=1"
+        fuzz_cmd="${fuzz_cmd} ./random-test-driver"
+        fuzz_cmd="${fuzz_cmd} -timeout=3 -max_total_time=${FUZZ_TIME} -max_len=${rmax}"
+
+        if grep "^fuzz:" Makefile >/dev/null ; then
+            echo "No fuzzer defined, skipping fuzzing"
+        else
+            fuzz_targets=`echo random-data/* | sed -e 's/random-data./fuzz-/g'`
+            {
+                echo "fuzz: $fuzz_targets"
+                echo "fuzz-%: random-data/% random-test-driver"
+                echo "	ASN1_DATA_DIR=\$< ${fuzz_cmd} \$<"
+            } >> Makefile
+        fi
+
         echo "Recompiling for fuzzing..."
         rm -f random-test-driver.o
         rm -f random-test-driver
         reproduce_make="cd \"${RNDTEMP}\" && ${CCSTR}CFLAGS=\"${LIBFUZZER_CFLAGS} ${CFLAGS}\" ${MAKE}"
-        echo "(${reproduce_make})" > .test-reproduce
         CFLAGS="${LIBFUZZER_CFLAGS} ${CFLAGS}" Make
         if [ $? -ne 0 ]; then
             echo "Recompile failed"
+            echo "($(cat .test-$line-compile) && ${round_trip_check_cmd})" > .test-$line-reproduce;
+            echo "RETRY:"; cat .test-$line-reproduce ;
             return 4
         fi
 
         echo "Fuzzing will take a multiple of ${FUZZ_TIME} seconds..."
-        echo "(${reproduce_make} fuzz)" > .test-reproduce
         CFLAGS="${LIBFUZZER_CFLAGS} ${CFLAGS}" Make fuzz
         if [ $? -ne 0 ]; then
-            { echo "RETRY:"; cat .test-reproduce ; }
+            echo "($(cat .test-$line-compile) && ${round_trip_check_cmd})" > .test-$line-reproduce
+            echo "RETRY:"; cat .test-$line-reproduce
             return 5
         fi
     fi
-
     return 0
 }
 
@@ -265,6 +306,7 @@ asn1c_invoke() {
 asn_compile() {
     asn="$1"
     where="$2"
+    line="$3"
 
     # Create "INTEGER (1..2)" from "T ::= INTEGER (1..2) -- RMAX=5"
     short_asn=`echo "$asn" | sed -e 's/ *--.*//;s/RMAX=[0-9]//;'`
@@ -291,7 +333,7 @@ asn_compile() {
     echo "all-tests-succeeded: ${abs_top_builddir}/asn1c/asn1c \$(ASN_PROGRAM_SRCS) \$(ASN_MODULE_SRCS) \$(ASN_MODULE_HDRS)"
     echo "	@rm -f \$@"
     echo "	@echo Previous try did not go correctly. To reproduce:"
-    echo "	@cat .test-reproduce"
+    echo "	@cat .test-$line-reproduce"
     echo "	@exit 1"
     echo
     } > Makefile
@@ -319,13 +361,13 @@ test_drive() {
     # Can't reuse object code.
     rm -rf ${RNDTEMP}
 
-    echo "MODE: default"
+    echo "# MODE: default"
     # Default (likely 64-bit) mode
     ${func} "$@"
 
     # 32-bit mode, if available
     if echo "${CFLAGS_M32}" | grep -i '[a-z]' > /dev/null ; then
-        echo "MODE: 32-bit"
+        echo "# MODE: 32-bit"
 
         # Can't reuse object code between modes.
         rm -rf ${RNDTEMP}
@@ -354,22 +396,23 @@ while :; do
         --asn1c) asn1c_flags="${asn1c_flags} $2"; shift 2; continue ;;
         --bundle)
             shift
+            #exec ${TEST_DRIVER} $0 --bundle "$@"
 
             # Look for the transcript in bundles/NN-*-bundles.txt.log
-            set -x
+            # set -x
 
             base=`basename "$1" | sed -e 's/.txt$//'`
             RNDTEMP=".tmp.${base}"
 
-            if Make -C "${RNDTEMP}" all-tests-succeeded >/dev/null 2>&1 ; then
-                echo "Test succeeded before. Not rechecking."
-                tests_succeeded=1
-                break
-            fi
+            #if Make -C "${RNDTEMP}" all-tests-succeeded >/dev/null 2>&1 ; then
+            #    echo "Test succeeded before. Not rechecking."
+            #    tests_succeeded=1
+            #    break
+            #fi
 
             test_drive verify_asn_types_in_file "$@"
 
-            touch "${RNDTEMP}/all-tests-succeeded"
+            #touch "${RNDTEMP}/all-tests-succeeded"
 
             break
             ;;
@@ -379,25 +422,23 @@ while :; do
             shift
             continue
             ;;
+		--max-failures) stop_after_failed=$2; shift 2; continue;;
         -e) encodings="${encodings} -e $2"; shift 2; continue;;
         -j) parallelism="$1"; shift 2; continue;;
         -t)
-            test_drive verify_asn_type "full" "$2" "(command line)" || exit 1 ;;
+            test_drive verify_asn_type "full" "$2" "(command line)" "0" || exit 1 ;;
         "")
             for bundle in `ls -1 ${srcdir}/bundles/*.txt | sort -nr`; do
                 test_drive verify_asn_types_in_file "$bundle"
             done
         ;;
         *)
-            exec ${TEST_DRIVER} $0 --bundle "$@"
+            test_drive verify_asn_types_in_file "$@"
         ;;
     esac
     break
 done
 
-if [ "$tests_succeeded" != "0" ] && [ "$tests_failed" = "0" ]; then
-    echo "OK $tests_succeeded tests"
-else
-    echo "FAILED $tests_failed tests, OK $tests_succeeded tests"
-    exit 1
-fi
+echo "# Test Plan"
+echo "1..${testcase}"
+test $tests_failed -eq 0 && exit 0 || exit 1;
